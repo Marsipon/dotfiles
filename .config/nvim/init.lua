@@ -87,16 +87,17 @@ vim.opt.iskeyword:append("-") -- include - in words
 vim.opt.path:append("**") -- include subdirs in search
 vim.opt.selection = "inclusive" -- include last char in selection
 vim.opt.mouse = "a" -- enable mouse support
-vim.opt.clipboard:append("unnamedplus") -- use system clipboard
+vim.api.nvim_create_autocmd("UIEnter", { -- defer clipboard lookup to avoid startup slowdown
+	once = true,
+	callback = function() vim.opt.clipboard = "unnamedplus" end,
+})
 vim.opt.modifiable = true -- allow buffer modifications
 vim.opt.encoding = "utf-8" -- set encoding
 
 vim.opt.guicursor =
 	"n-v-c:block,i-ci-ve:block,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175" -- cursor blinking and settings
 
--- Folding: requires treesitter available at runtime; safe fallback if not
-vim.opt.foldmethod = "expr" -- use expression for folding
-vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()" -- use treesitter for folding
+vim.opt.foldmethod = "indent" -- fast default; treesitter expr applied per-buffer via FileType
 vim.opt.foldlevel = 99 -- start with all folds open
 
 vim.opt.splitbelow = true -- horizontal splits go below
@@ -112,14 +113,17 @@ vim.opt.maxmempattern = 20000 -- increase max memory
 -- STATUSLINE
 -- ============================================================================
 
--- Git branch function with caching and Nerd Font icon
+-- Git branch function with async updates and Nerd Font icon
 local cached_branch = ""
 local last_check = 0
 local function git_branch()
 	local now = vim.loop.now()
-	if now - last_check > 5000 then -- Check every 5 seconds
-		cached_branch = vim.fn.system("git branch --show-current 2>/dev/null | tr -d '\n'")
-		last_check = now
+	if now - last_check > 5000 then
+		last_check = now -- set before async call to prevent duplicate in-flight requests
+		vim.system({ "git", "branch", "--show-current" }, { text = true }, function(obj)
+			cached_branch = (obj.stdout or ""):gsub("%s+$", "")
+			vim.schedule(function() vim.cmd("redrawstatus") end)
+		end)
 	end
 	if cached_branch ~= "" then
 		return " \u{e725} " .. cached_branch .. " " -- nf-dev-git_branch
@@ -445,7 +449,7 @@ packadd("nvim-treesitter")
 packadd("gitsigns.nvim")
 packadd("mini.nvim")
 packadd("fzf-lua")
-packadd("nvim-tree.lua")
+-- nvim-tree.lua: loaded lazily on <leader>e
 -- LSP
 packadd("nvim-lspconfig")
 packadd("mason.nvim")
@@ -501,7 +505,11 @@ local setup_treesitter = function()
 		group = group,
 		callback = function(args)
 			if vim.list_contains(treesitter.get_installed(), vim.treesitter.language.get_lang(args.match)) then
-				vim.treesitter.start(args.buf)
+				local ok = pcall(vim.treesitter.start, args.buf)
+				if ok then
+					vim.opt_local.foldmethod = "expr"
+					vim.opt_local.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+				end
 			end
 		end,
 	})
@@ -509,28 +517,27 @@ end
 
 setup_treesitter()
 
-require("nvim-tree").setup({
-	view = {
-		width = 35,
-	},
-	filters = {
-		dotfiles = false,
-	},
-	renderer = {
-		group_empty = true,
-	},
-})
+-- Global highlight set at startup regardless of tree open state
+vim.api.nvim_set_hl(0, "SignColumn", { bg = "none" })
 
+local nvim_tree_loaded = false
 vim.keymap.set("n", "<leader>e", function()
+	if not nvim_tree_loaded then
+		vim.cmd("packadd nvim-tree.lua")
+		require("nvim-tree").setup({
+			view = { width = 35 },
+			filters = { dotfiles = false },
+			renderer = { group_empty = true },
+		})
+		vim.api.nvim_set_hl(0, "NvimTreeNormalNC", { bg = "none" })
+		vim.api.nvim_set_hl(0, "NvimTreeSignColumn", { bg = "none" })
+		vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = "none" })
+		vim.api.nvim_set_hl(0, "NvimTreeWinSeparator", { fg = "#2a2a2a", bg = "none" })
+		vim.api.nvim_set_hl(0, "NvimTreeEndOfBuffer", { bg = "none" })
+		nvim_tree_loaded = true
+	end
 	require("nvim-tree.api").tree.toggle()
 end, { desc = "Toggle NvimTree" })
-
-vim.api.nvim_set_hl(0, "NvimTreeNormalNC", { bg = "none" })
-vim.api.nvim_set_hl(0, "SignColumn", { bg = "none" })
-vim.api.nvim_set_hl(0, "NvimTreeSignColumn", { bg = "none" })
-vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = "none" })
-vim.api.nvim_set_hl(0, "NvimTreeWinSeparator", { fg = "#2a2a2a", bg = "none" })
-vim.api.nvim_set_hl(0, "NvimTreeEndOfBuffer", { bg = "none" })
 
 require("fzf-lua").setup({})
 
@@ -772,7 +779,20 @@ vim.lsp.config("gopls", {})
 vim.lsp.config("clangd", {})
 vim.lsp.config("kotlin-lsp", {})
 
-do
+vim.lsp.enable({
+	"lua_ls",
+	"pyright",
+	"bashls",
+	"ts_ls",
+	"gopls",
+	"clangd",
+	"efm",
+	"kotlin-lsp",
+	"buf",
+})
+
+-- Defer all efmls-configs requires — each module costs 400-750ms at startup
+vim.schedule(function()
 	local luacheck = require("efmls-configs.linters.luacheck")
 	local stylua = require("efmls-configs.formatters.stylua")
 
@@ -815,7 +835,7 @@ do
 			"typescriptreact",
 			"vue",
 			"svelte",
-      "buf",
+			"buf",
 			"kotlin",
 		},
 		init_options = { documentFormatting = true },
@@ -832,7 +852,7 @@ do
 				jsonc = { eslint_d, fixjson },
 				lua = { luacheck, stylua },
 				markdown = { prettier_d },
-				python = { rufflint,ruffformat },
+				python = { rufflint, ruffformat },
 				sh = { shellcheck, shfmt },
 				typescript = { eslint_d, prettier_d },
 				typescriptreact = { eslint_d, prettier_d },
@@ -842,19 +862,7 @@ do
 			},
 		},
 	})
-end
-
-vim.lsp.enable({
-	"lua_ls",
-	"pyright",
-	"bashls",
-	"ts_ls",
-	"gopls",
-	"clangd",
-	"efm",
-  "kotlin-lsp",
-  "buf",
-})
+end)
 
 -- ============================================================================
 -- FLOATING TERMINAL
