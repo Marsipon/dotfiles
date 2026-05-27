@@ -36,7 +36,7 @@ function M.setup()
 		end,
 	})
 
-	vim.keymap.set("n", "<leader>lg", function()
+	vim.keymap.set("n", "<leader>gg", function()
 		M.open("LazyGit")
 	end, { desc = "LazyGit" })
 end

@@ -7,7 +7,20 @@ local function ensure_setup()
 	end
 
 	require("plugins").load("which-key.nvim")
-	require("which-key").setup({})
+
+	local wk = require("which-key")
+	wk.setup({})
+	wk.add({
+		{ "<leader>b", group = "Buffers" },
+		{ "<leader>f", group = "Find" },
+		{ "<leader>g", group = "Goto / Git" },
+		{ "<leader>h", group = "Git hunks" },
+		{ "<leader>o", group = "Organize" },
+		{ "<leader>p", group = "Path / previous" },
+		{ "<leader>s", group = "Split" },
+		{ "<leader>t", group = "Toggle" },
+	})
+
 	configured = true
 end
 

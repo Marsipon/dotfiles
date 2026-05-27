@@ -82,7 +82,7 @@ function M.setup()
 		end,
 	})
 
-	vim.keymap.set("n", "<leader>t", floating_terminal, {
+	vim.keymap.set("n", "<leader>tt", floating_terminal, {
 		noremap = true,
 		silent = true,
 		desc = "Toggle floating terminal",
