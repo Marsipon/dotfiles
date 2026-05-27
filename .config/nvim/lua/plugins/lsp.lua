@@ -144,7 +144,16 @@ local function setup_blink()
 		},
 		appearance = { nerd_font_variant = "mono" },
 		completion = { menu = { auto_show = true } },
-		sources = { default = { "lsp", "path", "buffer", "snippets" } },
+		sources = {
+			default = { "lazydev", "lsp", "path", "snippets", "buffer" },
+			providers = {
+				lazydev = {
+					name = "LazyDev",
+					module = "lazydev.integrations.blink",
+					score_offset = 100,
+				},
+			},
+		},
 		snippets = {
 			expand = function(snippet)
 				require("luasnip").lsp_expand(snippet)
@@ -177,6 +186,8 @@ local function setup_servers()
 	vim.lsp.config("gopls", {})
 	vim.lsp.config("clangd", {})
 	vim.lsp.config("kotlin-lsp", {})
+	vim.lsp.config("terraformls", {})
+	vim.lsp.config("tflint", {})
 
 	vim.lsp.enable({
 		"lua_ls",
@@ -186,6 +197,8 @@ local function setup_servers()
 		"gopls",
 		"clangd",
 		"kotlin-lsp",
+		"terraformls",
+		"tflint",
 		"buf",
 	})
 end
@@ -214,6 +227,8 @@ local function setup_efm()
 		local go_revive = require("efmls-configs.linters.go_revive")
 		local gofumpt = require("efmls-configs.formatters.gofumpt")
 
+		local terraform_fmt = require("efmls-configs.formatters.terraform_fmt")
+
 		local proto_lint = require("efmls-configs.linters.buf")
 		local proto_fmt = require("efmls-configs.formatters.buf")
 
@@ -232,6 +247,9 @@ local function setup_efm()
 				"markdown",
 				"python",
 				"sh",
+				"terraform",
+				"terraform-vars",
+				"hcl",
 				"typescript",
 				"typescriptreact",
 				"vue",
@@ -255,6 +273,9 @@ local function setup_efm()
 					markdown = { prettier_d },
 					python = { rufflint, ruffformat },
 					sh = { shellcheck, shfmt },
+					terraform = { terraform_fmt },
+					["terraform-vars"] = { terraform_fmt },
+					hcl = { terraform_fmt },
 					typescript = { eslint_d, prettier_d },
 					typescriptreact = { eslint_d, prettier_d },
 					vue = { eslint_d, prettier_d },
@@ -290,9 +311,12 @@ local function ensure_setup()
 		"mason.nvim",
 		"blink.cmp",
 		"LuaSnip",
+		"friendly-snippets",
 	})
 
-	require("mason").setup({})
+	require("plugins.mason").ensure_setup()
+	require("plugins.lazydev").ensure_setup()
+	require("luasnip.loaders.from_vscode").lazy_load()
 	setup_blink()
 	setup_servers()
 	setup_efm()

@@ -96,14 +96,20 @@ function M.lsp_status()
 		return ""
 	end
 
-	local clients = vim.lsp.get_clients({ bufnr = bufnr })
-	if #clients == 0 then
+	local active_clients = {}
+	for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+		if client.name ~= "copilot" then
+			active_clients[#active_clients + 1] = client
+		end
+	end
+
+	if #active_clients == 0 then
 		return "LSP: off"
 	end
 
 	local names = {}
 	local seen = {}
-	for _, client in ipairs(clients) do
+	for _, client in ipairs(active_clients) do
 		if not seen[client.name] then
 			seen[client.name] = true
 			names[#names + 1] = client.name

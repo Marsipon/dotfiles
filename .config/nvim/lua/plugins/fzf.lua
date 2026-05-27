@@ -7,6 +7,9 @@ function M.load()
 	local fzf = require("fzf-lua")
 	if not configured then
 		fzf.setup({})
+		if fzf.register_ui_select then
+			fzf.register_ui_select()
+		end
 		configured = true
 	end
 
