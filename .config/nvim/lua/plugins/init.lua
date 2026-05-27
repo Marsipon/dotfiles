@@ -40,6 +40,7 @@ vim.pack.add({
 	"https://github.com/zbirenbaum/copilot.lua",
 	"https://github.com/CopilotC-Nvim/CopilotChat.nvim",
 	"https://github.com/folke/flash.nvim",
+	"https://github.com/ellisonleao/gruvbox.nvim",
 })
 
 local loaded = {}

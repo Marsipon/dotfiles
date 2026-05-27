@@ -65,6 +65,10 @@
       "rev": "154eb5ff5b96d0641307113fa385eaf0d36d9796",
       "src": "https://github.com/ellisonleao/gruvbox.nvim"
     },
+    "gruvbox.nvim": {
+      "rev": "154eb5ff5b96d0641307113fa385eaf0d36d9796",
+      "src": "https://github.com/ellisonleao/gruvbox.nvim"
+    },
     "kotlin.nvim": {
       "rev": "262340932602a77ce0be12aab949864a37a756bc",
       "src": "https://github.com/AlexandrosAlexiou/kotlin.nvim"
