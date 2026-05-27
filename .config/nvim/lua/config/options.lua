@@ -1,6 +1,45 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+local function has_executable(cmd)
+	return vim.fn.executable(cmd) == 1
+end
+
+local function setup_clipboard()
+	-- WSL: use the Windows clipboard explicitly.
+	if vim.fn.has("wsl") == 1 and has_executable("clip.exe") and has_executable("powershell.exe") then
+		vim.g.clipboard = {
+			name = "WslClipboard",
+			copy = {
+				["+"] = "clip.exe",
+				["*"] = "clip.exe",
+			},
+			paste = {
+				["+"] = [[powershell.exe -NoLogo -NoProfile -c [Console]::Out.Write($(Get-Clipboard -Raw).ToString().Replace("`r", ""))]],
+				["*"] = [[powershell.exe -NoLogo -NoProfile -c [Console]::Out.Write($(Get-Clipboard -Raw).ToString().Replace("`r", ""))]],
+			},
+			cache_enabled = 0,
+		}
+		return
+	end
+
+	-- macOS/Linux: let Neovim use native clipboard tools when available.
+	local has_native_clipboard = has_executable("wl-copy")
+		or has_executable("xclip")
+		or has_executable("xsel")
+		or has_executable("pbcopy")
+		or has_executable("win32yank")
+
+	if has_native_clipboard then
+		return
+	end
+
+	-- Last fallback: use OSC52 through the terminal.
+	vim.g.clipboard = "osc52"
+end
+
+setup_clipboard()
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.cursorline = true
@@ -59,12 +98,7 @@ vim.opt.iskeyword:append("-")
 vim.opt.path:append("**")
 vim.opt.selection = "inclusive"
 vim.opt.mouse = "a"
-vim.api.nvim_create_autocmd("UIEnter", {
-	once = true,
-	callback = function()
-		vim.opt.clipboard = "unnamedplus"
-	end,
-})
+vim.opt.clipboard = "unnamedplus"
 vim.opt.modifiable = true
 vim.opt.encoding = "utf-8"
 
