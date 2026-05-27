@@ -17,7 +17,7 @@ function M.git_branch()
 	end
 
 	if cached_branch ~= "" then
-		return " \u{e725} " .. cached_branch .. " "
+		return "Git: " .. cached_branch
 	end
 
 	return ""
@@ -66,10 +66,10 @@ function M.file_type()
 	}
 
 	if ft == "" then
-		return " \u{f15b} "
+		return "Type: text"
 	end
 
-	return (icons[ft] or " \u{f15b} ") .. ft
+	return "Type: " .. ((icons[ft] or "\u{f15b} ") .. ft)
 end
 
 function M.file_size()
@@ -87,7 +87,77 @@ function M.file_size()
 		size_str = string.format("%.1fM", size / 1024 / 1024)
 	end
 
-	return " \u{f016} " .. size_str .. " "
+	return "Size: " .. size_str
+end
+
+function M.lsp_status()
+	local bufnr = vim.api.nvim_get_current_buf()
+	if vim.bo[bufnr].buftype ~= "" then
+		return ""
+	end
+
+	local clients = vim.lsp.get_clients({ bufnr = bufnr })
+	if #clients == 0 then
+		return "LSP: off"
+	end
+
+	local names = {}
+	local seen = {}
+	for _, client in ipairs(clients) do
+		if not seen[client.name] then
+			seen[client.name] = true
+			names[#names + 1] = client.name
+		end
+	end
+	table.sort(names)
+
+	local label = table.concat(names, ", ")
+	if #names > 2 then
+		label = names[1] .. " +" .. (#names - 1)
+	end
+
+	local errors = #vim.diagnostic.get(bufnr, { severity = vim.diagnostic.severity.ERROR })
+	local warnings = #vim.diagnostic.get(bufnr, { severity = vim.diagnostic.severity.WARN })
+
+	if errors > 0 then
+		local suffix = errors == 1 and "error" or "errors"
+		return "LSP: " .. errors .. " " .. suffix .. " " .. label
+	end
+
+	if warnings > 0 then
+		local suffix = warnings == 1 and "warning" or "warnings"
+		return "LSP: " .. warnings .. " " .. suffix .. " " .. label
+	end
+
+	return "LSP: ok " .. label
+end
+
+local function join_sections(parts)
+	local items = {}
+	for _, part in ipairs(parts) do
+		if part and part ~= "" then
+			items[#items + 1] = part
+		end
+	end
+
+	return table.concat(items, " \u{e0b1} ")
+end
+
+function M.file_size_section()
+	local size = M.file_size()
+	if size == "" then
+		return ""
+	end
+
+	return " \u{e0b1} " .. size
+end
+
+function M.right_status()
+	return join_sections({
+		M.git_branch(),
+		M.file_type(),
+		M.lsp_status(),
+	})
 end
 
 function M.mode_icon()
@@ -118,18 +188,15 @@ local function active_statusline()
 		"%{v:lua.mode_icon()}",
 		"%#StatusLine#",
 		" \u{e0b1} %f %h%m%r",
-		"%{v:lua.git_branch()}",
-		"\u{e0b1} ",
-		"%{v:lua.file_type()}",
-		"\u{e0b1} ",
-		"%{v:lua.file_size()}",
+		"%{v:lua.file_size_section()}",
 		"%=",
-		" \u{f017} %l:%c  %P ",
+		"%{v:lua.right_status()}",
+		" \u{e0b1} Ln %l, Col %c",
 	})
 end
 
 local function inactive_statusline()
-	return "  %f %h%m%r \u{e0b1} %{v:lua.file_type()} %=  %l:%c   %P "
+	return "  %f %h%m%r%{v:lua.file_size_section()} %= %{v:lua.right_status()} \u{e0b1} Ln %l, Col %c"
 end
 
 function M.setup()
@@ -137,6 +204,9 @@ function M.setup()
 	_G.git_branch = M.git_branch
 	_G.file_type = M.file_type
 	_G.file_size = M.file_size
+	_G.file_size_section = M.file_size_section
+	_G.lsp_status = M.lsp_status
+	_G.right_status = M.right_status
 
 	vim.cmd([[
 		highlight StatusLineBold gui=bold cterm=bold
@@ -155,6 +225,13 @@ function M.setup()
 		group = group,
 		callback = function()
 			vim.opt_local.statusline = inactive_statusline()
+		end,
+	})
+
+	vim.api.nvim_create_autocmd({ "LspAttach", "LspDetach", "DiagnosticChanged" }, {
+		group = group,
+		callback = function()
+			vim.cmd("redrawstatus")
 		end,
 	})
 
