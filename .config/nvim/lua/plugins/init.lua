@@ -39,6 +39,7 @@ vim.pack.add({
 	"https://github.com/leoluz/nvim-dap-go",
 	"https://github.com/zbirenbaum/copilot.lua",
 	"https://github.com/CopilotC-Nvim/CopilotChat.nvim",
+	"https://github.com/folke/flash.nvim",
 })
 
 local loaded = {}
