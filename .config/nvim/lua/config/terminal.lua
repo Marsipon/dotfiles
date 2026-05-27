@@ -2,16 +2,71 @@ local M = {}
 
 local terminal_state = { buf = nil, win = nil, is_open = false }
 
+local function close_floating_terminal()
+	if terminal_state.win and vim.api.nvim_win_is_valid(terminal_state.win) then
+		vim.api.nvim_win_close(terminal_state.win, false)
+	end
+	terminal_state.is_open = false
+end
+
+local function set_terminal_keymaps(bufnr)
+	vim.keymap.set("t", "<Esc>", function()
+		local keys = vim.api.nvim_replace_termcodes("<C-\\><C-n>", true, false, true)
+		vim.api.nvim_feedkeys(keys, "n", false)
+	end, {
+		buffer = bufnr,
+		noremap = true,
+		silent = true,
+		desc = "Terminal normal mode",
+	})
+
+	vim.keymap.set("t", "<C-q>", function()
+		close_floating_terminal()
+	end, {
+		buffer = bufnr,
+		noremap = true,
+		silent = true,
+		desc = "Close floating terminal",
+	})
+
+	vim.keymap.set("n", "q", function()
+		close_floating_terminal()
+	end, {
+		buffer = bufnr,
+		noremap = true,
+		silent = true,
+		desc = "Close floating terminal",
+	})
+
+	vim.keymap.set("n", "i", function()
+		vim.cmd("startinsert")
+	end, {
+		buffer = bufnr,
+		noremap = true,
+		silent = true,
+		desc = "Terminal insert mode",
+	})
+
+	vim.keymap.set("n", "a", function()
+		vim.cmd("startinsert")
+	end, {
+		buffer = bufnr,
+		noremap = true,
+		silent = true,
+		desc = "Terminal insert mode",
+	})
+end
+
 local function floating_terminal()
 	if terminal_state.is_open and terminal_state.win and vim.api.nvim_win_is_valid(terminal_state.win) then
-		vim.api.nvim_win_close(terminal_state.win, false)
-		terminal_state.is_open = false
+		close_floating_terminal()
 		return
 	end
 
 	if not terminal_state.buf or not vim.api.nvim_buf_is_valid(terminal_state.buf) then
 		terminal_state.buf = vim.api.nvim_create_buf(false, true)
 		vim.bo[terminal_state.buf].bufhidden = "hide"
+		set_terminal_keymaps(terminal_state.buf)
 	end
 
 	local width = math.floor(vim.o.columns * 0.8)
@@ -53,8 +108,7 @@ local function floating_terminal()
 		buffer = terminal_state.buf,
 		callback = function()
 			if terminal_state.is_open and terminal_state.win and vim.api.nvim_win_is_valid(terminal_state.win) then
-				vim.api.nvim_win_close(terminal_state.win, false)
-				terminal_state.is_open = false
+				close_floating_terminal()
 			end
 		end,
 		once = true,
@@ -86,17 +140,6 @@ function M.setup()
 		noremap = true,
 		silent = true,
 		desc = "Toggle floating terminal",
-	})
-
-	vim.keymap.set("t", "<Esc>", function()
-		if terminal_state.is_open and terminal_state.win and vim.api.nvim_win_is_valid(terminal_state.win) then
-			vim.api.nvim_win_close(terminal_state.win, false)
-			terminal_state.is_open = false
-		end
-	end, {
-		noremap = true,
-		silent = true,
-		desc = "Close floating terminal",
 	})
 end
 
