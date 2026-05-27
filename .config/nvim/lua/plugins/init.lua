@@ -18,6 +18,8 @@ vim.pack.add({
 		version = vim.version.range("1.*"),
 	},
 	"https://github.com/L3MON4D3/LuaSnip",
+  "https://github.com/nvim-lua/plenary.nvim",
+  "https://github.com/kdheepak/lazygit.nvim"
 })
 
 local loaded = {}
