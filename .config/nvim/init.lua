@@ -46,5 +46,6 @@ require("plugins.mini").setup()
 require("plugins.gitsigns").setup()
 require("plugins.lsp").setup()
 require("plugins.lazygit").setup()
+require("plugins.which-key").setup()
 
 require("config.terminal").setup()
