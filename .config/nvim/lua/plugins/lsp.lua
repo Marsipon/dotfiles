@@ -185,7 +185,6 @@ local function setup_servers()
 	vim.lsp.config("ts_ls", {})
 	vim.lsp.config("gopls", {})
 	vim.lsp.config("clangd", {})
-	vim.lsp.config("kotlin-lsp", {})
 	vim.lsp.config("terraformls", {})
 	vim.lsp.config("tflint", {})
 
@@ -196,7 +195,6 @@ local function setup_servers()
 		"ts_ls",
 		"gopls",
 		"clangd",
-		"kotlin-lsp",
 		"terraformls",
 		"tflint",
 		"buf",

@@ -23,6 +23,7 @@ vim.pack.add({
 	"https://github.com/folke/which-key.nvim",
 	"https://github.com/folke/lazydev.nvim",
 	"https://github.com/mrcjkb/rustaceanvim",
+	"https://github.com/AlexandrosAlexiou/kotlin.nvim",
 	"https://github.com/Saecki/crates.nvim",
 	"https://github.com/rafamadriz/friendly-snippets",
 	"https://github.com/folke/trouble.nvim",
