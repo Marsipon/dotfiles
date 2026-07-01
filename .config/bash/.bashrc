@@ -24,18 +24,34 @@ if [ -d ~/.bashrc.d ]; then
 fi
 unset rc
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+# Lazy-load brew on first use
+brew() {
+    unset -f brew
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+    command brew "$@"
+}
 
-# Set up fzf key bindings and fuzzy completion
-eval "$(fzf --bash)"
+# Lazy-load fzf on first use
+fzf() {
+    unset -f fzf
+    eval "$(command fzf --bash)"
+    command fzf "$@"
+}
 # fzf
 export FZF_CTRL_T_OPTS="--walker-skip .git,node_modules,target --preview 'bat -n --color=always {}' --bind 'ctrl-/:change-preview-window(down|hidden|)'"
 # CTRL-Y to copy the command into clipboard using pbcopy
 export FZF_CTRL_R_OPTS="--bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort' --color header:italic --header 'Press CTRL-Y to copy command into clipboard'"
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"                                       # This loads nvm
-[ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" # This loads nvm bash_completion
+# Lazy-load nvm on first use (nvm.sh is ~400ms)
+node() { _init_nvm && node "$@"; }
+npm() { _init_nvm && npm "$@"; }
+nvm() { _init_nvm && nvm "$@"; }
+_init_nvm() {
+    unset -f node npm nvm _init_nvm
+    [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"
+    [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"
+}
 
 export JAVA_HOME="/home/fedoraremix/.jdks/corretto-25.0.2"
 
@@ -45,7 +61,6 @@ alias ecr-login='saml2aws login --skip-prompt --force --role "arn:aws:iam::48413
 alias ff='fzf --preview '\''rg --ignore-case --pretty --context 3 {q} {}'\'''
 alias l='ls -CF'
 alias la='ls -A'
-alias lg='lazygit'
 alias ll='ls -alF'
 alias nuget='saml2aws login --skip-prompt --skip-verify --force --role "arn:aws:iam::311937376626:role/SharedServicesDeveloper" && aws codeartifact login --tool dotnet --repository production --domain wow-group --domain-owner 311937376626 --region eu-west-1 --profile saml'
 alias gcat='saml2aws login --skip-prompt --skip-verify --force --role "arn:aws:iam::311937376626:role/SharedServicesDeveloper" && export CODEARTIFACT_AUTH_TOKEN=$(saml2aws exec -- aws codeartifact get-authorization-token --domain wow-group --domain-owner 311937376626 --region eu-west-1 --query authorizationToken --output text)'
